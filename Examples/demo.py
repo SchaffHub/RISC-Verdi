@@ -1,3 +1,4 @@
+# File: demo.py
 import tkinter as tk
 
 def myFunc(*args):
@@ -8,7 +9,7 @@ def myFunc(*args):
 
 root = tk.Tk(className='demo')
 
-button = tk.Button(root, text="Quit", command=root.destroy)
+button = tk.Button(root, text='Quit', command=root.destroy)
 button.pack()
 
 root.createcommand('myFunc', myFunc)

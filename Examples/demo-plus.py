@@ -1,3 +1,4 @@
+# File: demo-plus.py
 import tkinter as tk
 
 def myFunc(*args):
@@ -14,7 +15,7 @@ def rmCallback(parent):
 
 root = tk.Tk(className='demo')
 
-button = tk.Button(root, text="Quit",
+button = tk.Button(root, text='Quit',
                    command=lambda: rmCallback(root))
 button.pack()
 
@@ -22,6 +23,6 @@ root.createcommand('myFunc', myFunc)
 send_cmd = 'AddEventCallback demo myFunc wvCursorTimeChange 1'
 root.send('nWave', send_cmd)
 
-root.protocol("WM_DELETE_WINDOW", lambda: rmCallback(root))
+root.protocol('WM_DELETE_WINDOW', lambda: rmCallback(root))
 
 root.mainloop()
