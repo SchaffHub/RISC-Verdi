@@ -1,0 +1,364 @@
+#!/usr/bin/env python3
+
+import tkinter as tk
+from tkinter import simpledialog
+
+from resources import verdi_interface as verdi
+from resources import config
+
+import os
+import re
+import sys
+import string
+
+# ====================================================================
+
+class RadioButtonDialog(simpledialog.Dialog):
+    """Choose an item from a list"""
+
+    def __init__(self, title, prompt, radiobuttonlist, parent = None):
+
+        if not parent:
+            parent = tk._default_root
+
+        self.prompt          = prompt
+        self.radiobuttonlist = radiobuttonlist
+
+        tk.simpledialog.Dialog.__init__(self, parent, title)
+
+    def getresult(self):
+        return self.rb_var.get()
+
+    def destroy(self):
+        self.rb_var = None
+        tk.simpledialog.Dialog.destroy(self)
+
+    def body(self, master):
+
+        w = tk.Label(master, text=self.prompt, justify=tk.LEFT)
+        w.grid(row=0, padx=5, sticky=tk.W)
+
+        self.rb_var = tk.StringVar()
+        self.rb_var.set(self.radiobuttonlist[0])
+
+        rb_list = []
+        for value, text in enumerate(self.radiobuttonlist):
+            rb = tk.Radiobutton(master,
+                                text=text,
+                                variable=self.rb_var,
+                                value=text)
+            rb.grid(row=1+value, padx=5, sticky=tk.W)
+            rb_list.append(rb)
+
+        return rb_list[0]
+
+    def validate(self):
+        self.result = self.getresult()
+
+        if self.result is None:
+            return 0
+
+        return 1
+
+# ====================================================================
+
+class CodeModel():
+    """ Model (data) for the code image """
+
+    def __init__(self, core, wave):
+
+        # Member variable initialization.
+        self.instr_lookup = {}
+
+        # Add each file to the list of raw code lines.
+        raw_lines = []
+        dump_filenames = self.get_dump_filenames(core=core,
+                                                 wave=wave)
+        for filename in dump_filenames:
+            with open(filename, 'r') as f:
+                raw_lines.extend(f.readlines())
+
+        # Process the raw text to extract the instruction pointers
+        # and build a lookup table indexed by an instruction pointer.
+        self.labeled_code = []
+        for line_number, line_text in enumerate(raw_lines):
+            # Determine if the line text begins with an
+            #instruction pointer.
+            re_instr_ptr = re.match(r'^\s*([0-9a-fA-F]+):', line_text)
+            label = 'src'
+            if re_instr_ptr:
+                instr_ptr = re_instr_ptr.group(1)
+                self.instr_lookup[instr_ptr] = line_number
+                label = 'asm'
+            new_code = {'label': label, 'code': line_text}
+            self.labeled_code.append(new_code)
+
+    def get_dump_filenames(self, core, wave):
+        """A helper function to return a list of code filenames"""
+        (file_root, file_name) = os.path.split(wave)
+        #FIXME
+        brom_dump_filename = file_root + '/' + core + '-brom.dump'
+        sram_dump_filename = file_root + '/' + core + '-sram.dump'
+        return (brom_dump_filename, sram_dump_filename)
+
+    def get_labeled_code(self):
+        return self.labeled_code
+
+    def get_line_from_instr_ptr(self, instr_ptr):
+        """Look up the code line number with instruction pointer"""
+        line = None
+        if instr_ptr in self.instr_lookup:
+            line = self.instr_lookup[instr_ptr]
+        return line
+
+# ====================================================================
+
+class CodeView():
+    """GUI and control for a scrolled text window with text
+       highlighting and minimal contextual code coloring.  A
+       CodeView should be the child of an empty frame object."""
+
+    def __init__(self, parent, labeled_code=None):
+
+        # Enable resize capability
+        parent.columnconfigure(0, weight=1)
+        parent.columnconfigure(1, weight=0)
+        parent.rowconfigure   (0, weight=1)
+        parent.rowconfigure   (1, weight=0)
+    
+        # Member variable initialization.
+        self.highlighted_line = None
+
+        self.text_dump = tk.Text(parent, state='disabled',
+                                 wrap=tk.NONE)
+        vscroll_dump   = tk.Scrollbar(parent,
+                                      command=self.text_dump.yview,
+                                      orient=tk.VERTICAL)
+        hscroll_dump   = tk.Scrollbar(parent,
+                                      command=self.text_dump.xview,
+                                      orient=tk.HORIZONTAL)
+        self.text_dump.configure(yscrollcommand=vscroll_dump.set)
+        self.text_dump.configure(xscrollcommand=hscroll_dump.set)
+
+        self.text_dump.grid(row=0, column=0,
+                            sticky=tk.W+tk.E+tk.N+tk.S)
+        vscroll_dump.grid  (row=0, column=1,
+                            sticky=tk.W+     tk.N+tk.S)
+        hscroll_dump.grid  (row=1, column=0,
+                            sticky=tk.W+tk.E+tk.N+tk.S)
+
+        self.text_dump.config(background=config.code_bg)
+        self.text_dump.tag_config('highlight',
+                                  foreground=config.highlight_fg,
+                                  background=config.highlight_bg)
+        self.text_dump.tag_config('asm',
+                                  foreground=config.asm_fg)
+        self.text_dump.tag_config('src',
+                                  foreground=config.src_fg)
+
+        self.apply_labeled_code(labeled_code)
+
+    def apply_labeled_code(self, labeled_code):
+        if labeled_code is not None:
+            self.text_dump.configure(state='normal')
+            for code_line in labeled_code:
+                if code_line['label'] is 'asm':
+                    self.text_dump.insert(tk.END,
+                                          code_line['code'],
+                                          'asm')
+                else:
+                    self.text_dump.insert(tk.END,
+                                          code_line['code'],
+                                          'src')
+            self.text_dump.configure(state='disabled')
+
+    def get_tag_index_from_line(self, line):
+        index1 = "%d.0" % (line+1)
+        index2 = "%d.0" % (line+2)
+        return (index1, index2)
+
+    def highlight_line(self, line):
+        if self.highlighted_line is not None:
+            # Un-highlight the currently highlighted line.
+            idx = self.get_tag_index_from_line(self.highlighted_line)
+            self.text_dump.tag_remove('highlight', idx[0], idx[1])
+            self.text_dump.tag_add('asm', idx[0], idx[1])
+
+        self.highlighted_line = line
+        if self.highlighted_line is not None:
+            idx = self.get_tag_index_from_line(self.highlighted_line)
+            self.text_dump.tag_remove('asm', idx[0], idx[1])
+            self.text_dump.tag_add('highlight', idx[0], idx[1])
+            self.text_dump.see(idx[0])
+
+# ====================================================================
+
+class MainView():
+    """ GUI for main window """
+
+    def __init__(self, parent, callback, cleanup):
+
+        # Title bar embellishment.
+        parent.title(config.title)
+        icon_image = tk.PhotoImage(file=config.iconfile)
+        parent.iconphoto(True, icon_image)
+
+        # Need to keep a reference to the image to keep it from
+        # being garbage collected.  Use a member variable.
+        self.label_image = tk.PhotoImage(file=config.labelfile)
+
+        self.time_str = tk.StringVar()
+        self.wave_str = tk.StringVar()
+
+        # Setup up the main window GUI widgets.
+        # Enable resize capability
+        parent.columnconfigure(0, weight=0)
+        parent.columnconfigure(1, weight=0)
+        parent.columnconfigure(2, weight=0)
+        parent.columnconfigure(3, weight=1)
+        parent.columnconfigure(4, weight=1)
+        parent.columnconfigure(5, weight=0)
+        parent.rowconfigure   (0, weight=0)
+        parent.rowconfigure   (1, weight=1)
+
+        button_rev    = tk.Button(parent,
+                                  text=config.rev_text,
+                                  font=('Helvetica', 12),
+                                  command=lambda: callback('Prev'))
+        button_center = tk.Button(parent,
+                                  text=config.center_text,
+                                  font=('Helvetica', 12),
+                                  command=lambda: callback('Center'))
+        button_fwd    = tk.Button(parent,
+                                  text=config.fwd_text,
+                                  font=('Helvetica', 12),
+                                  command=lambda: callback('Next'))
+        label_time    = tk.Label (parent,
+                                  textvariable=self.time_str)
+        label_wave    = tk.Label (parent,
+                                  textvariable=self.wave_str)
+        button_cg     = tk.Button(parent,
+                                  image=self.label_image,
+                                  borderwidth=0,
+                                  command=cleanup)
+        frame_host    = tk.Frame (parent)
+
+        button_rev.grid   (row=0, column=0,
+                           sticky=tk.W)
+        button_center.grid(row=0, column=1)
+        button_fwd.grid   (row=0, column=2)
+        label_time.grid   (row=0, column=3,
+                           sticky=tk.W, padx=10)
+        label_wave.grid   (row=0, column=4,
+                           sticky=tk.E, padx=5)
+        button_cg.grid    (row=0, column=5,
+                           sticky=tk.E, padx=5)
+        frame_host.grid   (row=1, column=0,
+                           sticky=tk.W+tk.E+tk.N+tk.S,
+                           columnspan=6)
+
+        self.code_view = CodeView(parent=frame_host)#FIXME labeled_code=self.code_model.get_labeled_code())
+
+        parent.protocol("WM_DELETE_WINDOW", cleanup)
+
+    def update_wave_app(self, app):
+        self.wave_str.set('Wave app: ' + app)
+
+    def recenter(self, line):
+        self.code_view.highlight_line(line)
+
+    def update_cursor_time(self, time):
+        self.time_str.set('Time: ' + '{:,}'.format(int(time)))
+
+    def apply_labeled_code(self, labeled_code):
+        self.code_view.apply_labeled_code(labeled_code)
+
+# ====================================================================
+
+class Controller():
+    """Code that stitches the model and view classes together"""
+
+    def __init__(self, parent):
+
+        # Default instruction pointer signals.
+        self.ip_signal = 'top/dut/cg_executor_inst/pex/instr_addr_o'
+
+        # Main view.
+        self.main_view = MainView(parent=parent,
+                                  callback=self.view_callback_handler,
+                                  cleanup=self.cleanup)
+        
+        # Determine the Verdi instance with which to interact.
+        self.verdi = verdi.Interface()
+        candidates = self.verdi.get_candidates_for_wave_tk_name()
+        assert(len(candidates) > 0), 'No Verdi app candidates found.'
+        if len(candidates) == 1:
+            # Only a single candidate so must be the correct one.
+            self.verdi.set_wave_tk_name(candidates[0])
+        else:
+            # More than one candidate so use GUI to help user choose.
+            prompt = 'Choose a Verdi instance:'
+            dialog = RadioButtonDialog(title='Wave Selection',
+                                       prompt=prompt,
+                                       radiobuttonlist=candidates,
+                                       parent=parent)
+            self.verdi.set_wave_tk_name(dialog.result)
+
+        # Now that the Verdi app is known...
+        # ...register the callback for when the cursor changes.
+        self.verdi.add_time_change_work(self.verdi_callback_handler)
+        self.verdi.register_time_change_callback()
+        # ...and update the label name.
+        self.main_view.update_wave_app(self.verdi.get_wave_tk_name())
+        # ...and get the current cursor value and display the time.
+        time_at_cursor = self.verdi.get_time_at_cursor()
+        self.main_view.update_cursor_time(time_at_cursor)
+
+        wave_filename = self.verdi.get_wave_filename()
+        self.code_model = CodeModel(core=config.core_name,
+                                    wave=wave_filename)
+
+        labeled_code = self.code_model.get_labeled_code()
+        self.main_view.apply_labeled_code(labeled_code)
+
+        # Not that the code model and view have been created
+        # update the view to highlight the current instruction.
+        self.recenter()
+
+    def view_callback_handler(self, reason):
+        legal_reasons = {'Prev', 'Next', 'Center'}
+        assert(reason in legal_reasons), 'Unrecognized reason.'
+        if reason is 'Center':
+            self.recenter()
+        else:
+            self.verdi.search_signal_change(signal=self.ip_signal,
+                                            direction=reason)
+
+    def recenter(self):
+        ip_value = self.verdi.get_sig_value_by_time(self.ip_signal)
+        line = self.code_model.get_line_from_instr_ptr(ip_value)
+        self.main_view.recenter(line)
+
+    def verdi_callback_handler(self, time):
+        self.main_view.update_cursor_time(time)
+        self.recenter()
+
+    def cleanup(self):
+        print('Destroying controller')#FIXME
+        self.verdi.destroy()
+        self.main_view.destroy()
+
+# ====================================================================
+
+root = tk.Tk(className=config.class_name)
+
+# Keep this window hidden until we know how to draw it.
+root.withdraw()
+
+controller = Controller(root)
+
+# Display the main window now that it has been properly configured.
+root.deiconify()
+
+root.mainloop()
+controller.cleanup()
