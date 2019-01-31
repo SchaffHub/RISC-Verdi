@@ -1,5 +1,5 @@
-title        = 'Code Follower'
-class_name   = 'code_follower'
+title        = 'RISC-Verdi'
+class_name   = 'risc_verdi'
 
 rev_text     = '\U000025c0'
 center_text  = '\U000025ce'
