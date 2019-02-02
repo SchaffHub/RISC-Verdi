@@ -15,4 +15,4 @@ asm_fg       = 'black'
 src_fg       = '#AD79A8'
 
 ip_signal    = '/tb/_top/riscv_core_i/if_stage_i/pc_id_o'
-listing      = '../../host/host.lst'
+listing      = '../sw/host.lst'
