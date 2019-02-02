@@ -14,4 +14,5 @@ highlight_bg = 'yellow'
 asm_fg       = 'black'
 src_fg       = '#AD79A8'
 
-core_name    = 'pex'#FIXME: RISC-V
+ip_signal    = '/tb/_top/riscv_core_i/if_stage_i/pc_id_o'
+listing      = '../../host/host.lst'

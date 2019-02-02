@@ -173,6 +173,8 @@ class Interface():
         # [1] time at cursor
         # [2] path to signal clocked
         # [3] fsdb file path
+        reasons = {'wvCursorTimeChange'}
+        assert(args[0] in reasons), 'Unknown callback reason.'
 
         # Step through the work list (array of functions)
         # and call each one with the given arguments.
