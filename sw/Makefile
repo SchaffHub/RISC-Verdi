@@ -1,24 +1,3 @@
-#all:
-#	riscv32-unknown-elf-gcc \
-#		-DMEM_MB=1 \
-#		-nostartfiles -nostdlib -static -g \
-#		-I /home2/mikes/dover-repos/dover-hw/CoreGuard/verif/cg/src/shared \
-#		-I /home2/mikes/dover-repos/dover-os \
-#		-I /home2/mikes/dover-repos/isp-headers \
-#		-I /home2/mikes/dover-repos/dover-hw/CoreGuard/TPU/verif/src/shared \
-#		-I /home2/mikes/dover-repos/isp-headers/isp32_mpu \
-#		-T host.ld \
-#		host_boot_entry.S \
-#		/home2/mikes/dover-repos/dover-hw/CoreGuard/verif/cg/src/shared/utils.rv32.S \
-#		/home2/mikes/dover-repos/dover-hw/CoreGuard/verif/cg/src/shared/verif_utils.c \
-#		/home2/mikes/dover-repos/dover-os/common/vsnprintf.c \
-#		host.c \
-#		-o host.out
-#	riscv32-unknown-elf-objcopy -O binary host.out host.bin
-#	hexdump -v -e'1/1 "%02x""\n"' host.bin > host.hex
-#	riscv32-unknown-elf-objdump -dS host.out > host.lst
-#	riscv32-unknown-elf-objdump -s -j .rodata -j .sdata host.out >> host.lst
-
 all: host.lst host.hex
 
 REMOTE_DIR =	/home2/mikes/dover-repos
