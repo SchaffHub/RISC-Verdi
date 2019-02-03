@@ -61,7 +61,7 @@ class Controller():
         labeled_code = self.code_model.get_labeled_code()
         self.main_view.apply_labeled_code(labeled_code)
 
-        # Not that the code model and view have been created
+        # Now that the code model and view have been created,
         # update the view to highlight the current instruction.
         self.recenter()
 
