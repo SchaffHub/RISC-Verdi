@@ -98,14 +98,6 @@ class MainView():
 
         # Title bar embellishment.
         self.root.title(config.title)
-        icon_image = tk.PhotoImage(master=self.root,
-                                   file=config.iconfile)
-        self.root.iconphoto(True, icon_image)
-
-        # Need to keep a reference to the image to keep it from
-        # being garbage collected.  Use a member variable.
-        self.label_image = tk.PhotoImage(master=self.root,
-                                         file=config.labelfile)
 
         self.time_str = tk.StringVar(self.root)
         self.wave_str = tk.StringVar(self.root)
@@ -138,8 +130,7 @@ class MainView():
         label_wave    = tk.Label (self.root,
                                   textvariable=self.wave_str)
         button_cg     = tk.Button(self.root,
-                                  image=self.label_image,
-                                  borderwidth=0,
+                                  text='Quit',
                                   command=cleanup)
         frame_host    = tk.Frame (self.root)
 
