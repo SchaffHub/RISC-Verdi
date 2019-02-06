@@ -101,11 +101,15 @@ class Interface():
                               signal,
                               delim_option,
                               time_option)
-        assert(result is not '0'), cmd + ' failure.'
 
         # [0] Success = 1
         # [1] Time
-        return result.split(' ')[1]
+        if result is '0':
+            new_time = None
+        else:
+            new_time = result.split(' ')[1]
+
+        return new_time
 
     def AddEventCallback(self, callback, reason, async=1):
         self.tk.send(self.wave_tk_name,
@@ -162,8 +166,9 @@ class Interface():
         new_time = self.wvSearchBySignal(direction=direction,
                                          signal=signal,
                                          time=time)
-        self.wvSetCursor(new_time)
-        self.wvCenterCursor()
+        if new_time is not None:
+            self.wvSetCursor(new_time)
+            self.wvCenterCursor()
 
     def time_change_callback(self, *args):
         """Called by Verdi when its cursor moves"""

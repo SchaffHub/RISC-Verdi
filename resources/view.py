@@ -5,11 +5,8 @@
 import tkinter as tk
 from tkinter import simpledialog
 
-from resources import view
-from resources import model
 from resources import config
 
-# ====================================================================
 
 class CodeView():
     """GUI and control for a scrolled text window with text
@@ -89,7 +86,6 @@ class CodeView():
             self.text_dump.tag_add('highlight', idx[0], idx[1])
             self.text_dump.see(idx[0])
 
-# ====================================================================
 
 class MainView():
     """ GUI for main window """
@@ -102,15 +98,17 @@ class MainView():
 
         # Title bar embellishment.
         self.root.title(config.title)
-        icon_image = tk.PhotoImage(file=config.iconfile)
+        icon_image = tk.PhotoImage(master=self.root,
+                                   file=config.iconfile)
         self.root.iconphoto(True, icon_image)
 
         # Need to keep a reference to the image to keep it from
         # being garbage collected.  Use a member variable.
-        self.label_image = tk.PhotoImage(file=config.labelfile)
+        self.label_image = tk.PhotoImage(master=self.root,
+                                         file=config.labelfile)
 
-        self.time_str = tk.StringVar()
-        self.wave_str = tk.StringVar()
+        self.time_str = tk.StringVar(self.root)
+        self.wave_str = tk.StringVar(self.root)
 
         # Setup up the main window GUI widgets.
         # Enable resize capability
@@ -178,7 +176,7 @@ class MainView():
     def apply_labeled_code(self, labeled_code):
         self.code_view.apply_labeled_code(labeled_code)
 
-    def choose_candidate(self, title, prompt, candidates):
+    def chooser(self, title, prompt, candidates):
         dialog = RadioButtonDialog(parent=self.root,
                                    title=title,
                                    prompt=prompt,
@@ -194,7 +192,6 @@ class MainView():
     def cleanup(self):
         self.root.destroy()
 
-# ====================================================================
 
 class RadioButtonDialog(simpledialog.Dialog):
     """Choose an item from a list"""
@@ -206,36 +203,26 @@ class RadioButtonDialog(simpledialog.Dialog):
 
         tk.simpledialog.Dialog.__init__(self, parent, title)
 
-    def getresult(self):
-        return self.rb_var.get()
-
-    def destroy(self):
-        self.rb_var = None
-        tk.simpledialog.Dialog.destroy(self)
-
     def body(self, parent):
 
-        w = tk.Label(parent, text=self.prompt, justify=tk.LEFT)
-        w.grid(row=0, padx=5, sticky=tk.W)
+        label_prompt = tk.Label(parent,
+                                text=self.prompt,
+                                justify=tk.LEFT)
+        label_prompt.grid(row=0, padx=5, sticky=tk.W)
 
-        self.rb_var = tk.StringVar()
+        self.rb_var = tk.StringVar(parent)
         self.rb_var.set(self.candidates[0])
 
         rb_list = []
         for value, text in enumerate(self.candidates):
-            rb = tk.Radiobutton(parent,
-                                text=text,
-                                variable=self.rb_var,
-                                value=text)
-            rb.grid(row=1+value, padx=5, sticky=tk.W)
-            rb_list.append(rb)
+            rb_list.append(tk.Radiobutton(parent,
+                                          text=text,
+                                          variable=self.rb_var,
+                                          value=text))
+            rb_list[-1].grid(row=1+value, padx=5, sticky=tk.W)
 
         return rb_list[0]
 
     def validate(self):
-        self.result = self.getresult()
-
-        if self.result is None:
-            return 0
-
-        return 1
+        self.result = self.rb_var.get()
+        return self.result is not None

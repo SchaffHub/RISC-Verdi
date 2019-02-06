@@ -5,7 +5,6 @@
 ######################################################################
 
 import os
-import tkinter as tk
 
 from resources import verdi_interface as verdi
 from resources import view
@@ -17,55 +16,58 @@ class Controller():
 
     def __init__(self):
 
-        # Main view.
-        main_view_callback = self.view_callback_handler
-        self.main_view = view.MainView(callback=main_view_callback,
-                                       cleanup=self.cleanup)
-        
         # Determine the Verdi instance with which to interact.
         self.verdi = verdi.Interface()
         candidates = self.verdi.get_candidates_for_wave_tk_name()
-        # Remove the name of the parent since it may have
-        # 'verdi' in its text.#FIXME
-        candidates.remove(self.main_view.get_name())
         assert(len(candidates) > 0), 'No Verdi app candidates found.'
+
+        # Create the main view now that a GUI is needed to continue.
+        callback = self.view_callback_handler
+        self.view = view.MainView(callback=callback,
+                                  cleanup=self.cleanup)
 
         if len(candidates) == 1:
             # Only a single candidate so must be the correct one.
-            self.verdi.set_wave_tk_name(candidates[0])
+            self.candidate = candidates[0]
         else:
             # More than one candidate so use GUI to help user choose.
             prompt = 'Choose a Verdi instance:'
             title  = 'Wave Selection'
-            dialog = main_view.choose_candidate(title=title,
-                                                prompt=prompt,
-                                                candidates=candidates)
-            self.verdi.set_wave_tk_name(dialog.result)
+            self.candidate = self.view.chooser(title=title,
+                                               prompt=prompt,
+                                               candidates=candidates)
 
-        # Now that the Verdi app is known...
-        # ...register the callback for when the cursor changes.
-        self.verdi.add_time_change_work(self.verdi_callback_handler)
-        self.verdi.register_time_change_callback()
-        # ...and update the label name.
-        self.main_view.update_wave_app(self.verdi.get_wave_tk_name())
-        # ...and get the current cursor value and display the time.
-        time_at_cursor = self.verdi.get_time_at_cursor()
-        self.main_view.update_cursor_time(time_at_cursor)
+        if self.candidate is not None:
+            self.verdi.set_wave_tk_name(self.candidate)
 
-        wave_filename = self.verdi.get_wave_filename()
-        (file_root, file_name) = os.path.split(wave_filename)
-        listing = file_root + '/' + config.listing
-        self.code_model = model.CodeModel(listing=listing)
+            # Now that the Verdi app is known...
+            # ...register the callback for when the cursor changes.
+            callback = self.verdi_callback_handler
+            self.verdi.add_time_change_work(callback)
+            self.verdi.register_time_change_callback()
+            # ...and update the label name.
+            self.view.update_wave_app(self.verdi.get_wave_tk_name())
+            # ...and get the cursor value and display the time.
+            time_at_cursor = self.verdi.get_time_at_cursor()
+            self.view.update_cursor_time(time_at_cursor)
 
-        labeled_code = self.code_model.get_labeled_code()
-        self.main_view.apply_labeled_code(labeled_code)
+            wave_filename = self.verdi.get_wave_filename()
+            (file_root, file_name) = os.path.split(wave_filename)
+            listing = file_root + '/' + config.listing
+            self.model = model.CodeModel(listing=listing)
 
-        # Now that the code model and view have been created,
-        # update the view to highlight the current instruction.
-        self.recenter()
+            labeled_code = self.model.get_labeled_code()
+            self.view.apply_labeled_code(labeled_code)
+
+            # Now that the code model and view have been created,
+            # update the view to highlight the current instruction.
+            self.recenter()
 
     def go(self):
-        self.main_view.go()
+        if self.candidate is not None:
+            self.view.go()
+        else:
+            self.cleanup()
 
     def view_callback_handler(self, reason):
         legal_reasons = {'Prev', 'Next', 'Center'}
@@ -78,16 +80,16 @@ class Controller():
 
     def recenter(self):
         ip_value = self.verdi.get_sig_value_by_time(config.ip_signal)
-        line = self.code_model.get_line_from_instr_ptr(ip_value)
-        self.main_view.recenter(line)
+        line = self.model.get_line_from_instr_ptr(ip_value)
+        self.view.recenter(line)
 
     def verdi_callback_handler(self, time):
-        self.main_view.update_cursor_time(time)
+        self.view.update_cursor_time(time)
         self.recenter()
 
     def cleanup(self):
         self.verdi.cleanup()
-        self.main_view.cleanup()
+        self.view.cleanup()
 
 controller = Controller()
 
