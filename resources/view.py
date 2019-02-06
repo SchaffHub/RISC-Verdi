@@ -94,14 +94,16 @@ class CodeView():
 class MainView():
     """ GUI for main window """
 
-    def __init__(self, parent, callback, cleanup):
+    def __init__(self, callback, cleanup):
 
-        self.parent = parent
+        # Keep the Tk default window until we know how to draw it.
+        self.root = tk.Tk(className=config.class_name)
+        self.root.withdraw()
 
         # Title bar embellishment.
-        parent.title(config.title)
+        self.root.title(config.title)
         icon_image = tk.PhotoImage(file=config.iconfile)
-        parent.iconphoto(True, icon_image)
+        self.root.iconphoto(True, icon_image)
 
         # Need to keep a reference to the image to keep it from
         # being garbage collected.  Use a member variable.
@@ -112,36 +114,36 @@ class MainView():
 
         # Setup up the main window GUI widgets.
         # Enable resize capability
-        parent.columnconfigure(0, weight=0)
-        parent.columnconfigure(1, weight=0)
-        parent.columnconfigure(2, weight=0)
-        parent.columnconfigure(3, weight=1)
-        parent.columnconfigure(4, weight=1)
-        parent.columnconfigure(5, weight=0)
-        parent.rowconfigure   (0, weight=0)
-        parent.rowconfigure   (1, weight=1)
+        self.root.columnconfigure(0, weight=0)
+        self.root.columnconfigure(1, weight=0)
+        self.root.columnconfigure(2, weight=0)
+        self.root.columnconfigure(3, weight=1)
+        self.root.columnconfigure(4, weight=1)
+        self.root.columnconfigure(5, weight=0)
+        self.root.rowconfigure   (0, weight=0)
+        self.root.rowconfigure   (1, weight=1)
 
-        button_rev    = tk.Button(parent,
+        button_rev    = tk.Button(self.root,
                                   text=config.rev_text,
                                   font=('Helvetica', 12),
                                   command=lambda: callback('Prev'))
-        button_center = tk.Button(parent,
+        button_center = tk.Button(self.root,
                                   text=config.center_text,
                                   font=('Helvetica', 12),
                                   command=lambda: callback('Center'))
-        button_fwd    = tk.Button(parent,
+        button_fwd    = tk.Button(self.root,
                                   text=config.fwd_text,
                                   font=('Helvetica', 12),
                                   command=lambda: callback('Next'))
-        label_time    = tk.Label (parent,
+        label_time    = tk.Label (self.root,
                                   textvariable=self.time_str)
-        label_wave    = tk.Label (parent,
+        label_wave    = tk.Label (self.root,
                                   textvariable=self.wave_str)
-        button_cg     = tk.Button(parent,
+        button_cg     = tk.Button(self.root,
                                   image=self.label_image,
                                   borderwidth=0,
                                   command=cleanup)
-        frame_host    = tk.Frame (parent)
+        frame_host    = tk.Frame (self.root)
 
         button_rev.grid   (row=0, column=0,
                            sticky=tk.W)
@@ -159,10 +161,10 @@ class MainView():
 
         self.code_view = CodeView(parent=frame_host)
 
-        parent.protocol("WM_DELETE_WINDOW", cleanup)
+        self.root.protocol("WM_DELETE_WINDOW", cleanup)
 
     def get_name(self):
-        return self.parent.winfo_name()
+        return self.root.winfo_name()
 
     def update_wave_app(self, app):
         self.wave_str.set('Wave app: ' + app)
@@ -176,18 +178,28 @@ class MainView():
     def apply_labeled_code(self, labeled_code):
         self.code_view.apply_labeled_code(labeled_code)
 
-    def destroy(self):
-        self.parent.destroy()
+    def choose_candidate(self, title, prompt, candidates):
+        dialog = RadioButtonDialog(parent=self.root,
+                                   title=title,
+                                   prompt=prompt,
+                                   candidates=candidates)
+        return dialog.result
+
+    def go(self):
+        # Display the main window now that it has
+        # been properly configured.
+        self.root.deiconify()
+        self.root.mainloop()
+
+    def cleanup(self):
+        self.root.destroy()
 
 # ====================================================================
 
 class RadioButtonDialog(simpledialog.Dialog):
     """Choose an item from a list"""
 
-    def __init__(self, title, prompt, candidates, parent = None):
-
-        if not parent:
-            parent = tk._default_root
+    def __init__(self, title, prompt, candidates, parent):
 
         self.prompt     = prompt
         self.candidates = candidates
@@ -201,9 +213,9 @@ class RadioButtonDialog(simpledialog.Dialog):
         self.rb_var = None
         tk.simpledialog.Dialog.destroy(self)
 
-    def body(self, master):
+    def body(self, parent):
 
-        w = tk.Label(master, text=self.prompt, justify=tk.LEFT)
+        w = tk.Label(parent, text=self.prompt, justify=tk.LEFT)
         w.grid(row=0, padx=5, sticky=tk.W)
 
         self.rb_var = tk.StringVar()
@@ -211,7 +223,7 @@ class RadioButtonDialog(simpledialog.Dialog):
 
         rb_list = []
         for value, text in enumerate(self.candidates):
-            rb = tk.Radiobutton(master,
+            rb = tk.Radiobutton(parent,
                                 text=text,
                                 variable=self.rb_var,
                                 value=text)

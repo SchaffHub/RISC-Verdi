@@ -204,6 +204,6 @@ class Interface():
         for arg in args:
             self.time_change_work_list.append(arg)
             
-    def destroy(self):
+    def cleanup(self):
         self.unregister_time_change_callback()
         self.tk.destroy()

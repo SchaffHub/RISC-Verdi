@@ -15,19 +15,18 @@ from resources import config
 class Controller():
     """Code that stitches the model and view classes together"""
 
-    def __init__(self, parent):
+    def __init__(self):
 
         # Main view.
         main_view_callback = self.view_callback_handler
-        self.main_view = view.MainView(parent=parent,
-                                       callback=main_view_callback,
+        self.main_view = view.MainView(callback=main_view_callback,
                                        cleanup=self.cleanup)
         
         # Determine the Verdi instance with which to interact.
         self.verdi = verdi.Interface()
         candidates = self.verdi.get_candidates_for_wave_tk_name()
         # Remove the name of the parent since it may have
-        # 'verdi' in its text.
+        # 'verdi' in its text.#FIXME
         candidates.remove(self.main_view.get_name())
         assert(len(candidates) > 0), 'No Verdi app candidates found.'
 
@@ -37,10 +36,10 @@ class Controller():
         else:
             # More than one candidate so use GUI to help user choose.
             prompt = 'Choose a Verdi instance:'
-            dialog = view.RadioButtonDialog(title='Wave Selection',
-                                            prompt=prompt,
-                                            candidates=candidates,
-                                            parent=parent)
+            title  = 'Wave Selection'
+            dialog = main_view.choose_candidate(title=title,
+                                                prompt=prompt,
+                                                candidates=candidates)
             self.verdi.set_wave_tk_name(dialog.result)
 
         # Now that the Verdi app is known...
@@ -65,6 +64,9 @@ class Controller():
         # update the view to highlight the current instruction.
         self.recenter()
 
+    def go(self):
+        self.main_view.go()
+
     def view_callback_handler(self, reason):
         legal_reasons = {'Prev', 'Next', 'Center'}
         assert(reason in legal_reasons), 'Unrecognized reason.'
@@ -84,17 +86,10 @@ class Controller():
         self.recenter()
 
     def cleanup(self):
-        self.verdi.destroy()
-        self.main_view.destroy()
+        self.verdi.cleanup()
+        self.main_view.cleanup()
 
-root = tk.Tk(className=config.class_name)
+controller = Controller()
 
-# Keep this window hidden until we know how to draw it.
-root.withdraw()
-
-controller = Controller(root)
-
-# Display the main window now that it has been properly configured.
-root.deiconify()
-
-root.mainloop()
+# Run the guts of the application.
+controller.go()
