@@ -169,7 +169,8 @@ class Interface():
         return self.wave_filename
 
     def get_sig_value_by_time(self, signal):
-        return self.wvGetSigValueByTime(signal)
+        esc_sig = self.escape_signal(signal)
+        return self.wvGetSigValueByTime(esc_sig)
 
     def get_time_at_cursor(self):
         result = self.wvGetCursor()
@@ -179,11 +180,20 @@ class Interface():
     # Application specific 
     # ------------------------------------------------------------
 
+    def escape_signal(self, signal):
+        new_signal = ''
+        for ch in signal:
+            if ch in {'[', ']'}:
+                new_signal += '\\'
+            new_signal += ch
+        return new_signal
+
     def search_signal_change(self, signal, direction):
         self.wvSetSearchMode('-anyChange')
+        esc_sig = self.escape_signal(signal)
         time = self.get_time_at_cursor()
         new_time = self.wvSearchBySignal(direction=direction,
-                                         signal=signal,
+                                         signal=esc_sig,
                                          time=time)
         if new_time is not None:
             self.wvSetCursor(new_time)

@@ -72,8 +72,14 @@ class Controller():
 
             wave_filename = self.verdi.get_wave_filename()
             (file_root, file_name) = os.path.split(wave_filename)
-            listing = file_root + '/' + config.listing
-            self.model = model.CodeModel(listing=listing)
+
+            if isinstance(config.listing, str):
+                base_listings = [config.listing]
+            else:
+                base_listings = config.listing
+
+            listings = [file_root + '/' + i for i in base_listings]
+            self.model = model.CodeModel(listings=listings)
 
             labeled_code = self.model.get_labeled_code()
             self.view.apply_labeled_code(labeled_code)

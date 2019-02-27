@@ -26,15 +26,16 @@ import re
 class CodeModel():
     """Model (data) for the code image"""
 
-    def __init__(self, listing):
+    def __init__(self, listings):
 
         # Member variable initialization.
         self.instr_lookup = {}
 
         # Add each file to the list of raw code lines.
         raw_lines = []
-        with open(listing, 'r') as f:
-            raw_lines.extend(f.readlines())
+        for listing in listings:
+            with open(listing, 'r') as f:
+                raw_lines.extend(f.readlines())
 
         # Process the raw text to extract the instruction pointers
         # and build a lookup table indexed by an instruction pointer.
