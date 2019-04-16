@@ -27,6 +27,8 @@ module tb;
     logic clk_i, rstn_i;
     localparam int CLK_PERIOD = 10;
 
+    localparam int WRITE_TO_FINISH = 'h3FFFFC;
+
     top _top
         (
          .clk_i,
@@ -46,20 +48,22 @@ module tb;
          .debug_addr_i(15'b0),
          .debug_we_i(1'b0),
          .debug_wdata_i(32'b0),
-         .debug_rdata_o(32'b0),
+         .debug_rdata_o(),
 
          .fetch_enable_i(1'b1),
          .core_busy_o()
          );
 
     initial begin
-        $readmemh("host.hex", _top.ram_i.dp_ram_i.mem);
+        $readmemh("../sw/host.hex", _top.ram_i.dp_ram_i.mem);
         $fsdbDumpvars(0, _top, "+fsdbfile+waves.fsdb");
         clk_i  = '0;
         rstn_i = '0;
         #(CLK_PERIOD*20);
         rstn_i = '1;
-        #(CLK_PERIOD*100);
+        while(~(_top.data_req & _top.data_we & (_top.data_addr == WRITE_TO_FINISH))) begin
+           @(posedge clk_i);
+        end
         $finish;
     end
 
