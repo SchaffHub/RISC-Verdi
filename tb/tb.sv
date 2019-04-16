@@ -64,6 +64,7 @@ module tb;
         while(~(_top.data_req & _top.data_we & (_top.data_addr == WRITE_TO_FINISH))) begin
            @(posedge clk_i);
         end
+        $info("\n<<<<<<<<<< Test completed successfully. >>>>>>>>>>\n");
         $finish;
     end
 
