@@ -1,7 +1,5 @@
 all: host.lst host.hex
 
-REMOTE_DIR =	/home2/mikes/dover-repos
-
 HOST_SOURCE =	host_boot_entry.S \
 		host.c
 

@@ -26,5 +26,8 @@ clean:
 	rm -rf simv.daidir
 	rm -rf csrc
 	rm -rf AN.DB
+	rm -rf 64
 	rm -f vc_hdrs.h
 	rm -f trace_core_00_0.log
+	rm -f novas_dump.log
+
