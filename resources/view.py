@@ -76,7 +76,7 @@ class CodeView():
         if labeled_code is not None:
             self.text_dump.configure(state='normal')
             for code_line in labeled_code:
-                if code_line['label'] is 'asm':
+                if code_line['label'] == 'asm':
                     self.text_dump.insert(tk.END,
                                           code_line['code'],
                                           'asm')

@@ -83,7 +83,7 @@ class Interface():
         result = self.tk.send(self.wave_tk_name,
                               'wvGetCursor')
 
-        assert(result is not '0'), 'wvGetCursor failure.'
+        assert(result != '0'), 'wvGetCursor failure.'
 
         # [0] Success = 1
         # [1] Time
@@ -96,18 +96,18 @@ class Interface():
         result = self.tk.send(self.wave_tk_name,
                               'wvSetCursor',
                               time)
-        assert(result is not '0'), 'wvSetCursor failure.'
+        assert(result != '0'), 'wvSetCursor failure.'
 
     def wvCenterCursor(self):
         result = self.tk.send(self.wave_tk_name,
                               'wvCenterCursor')
-        assert(result is not '0'), 'wvCenterCursor failure.'
+        assert(result != '0'), 'wvCenterCursor failure.'
 
     def wvSetSearchMode(self, *args):
         result = self.tk.send(self.wave_tk_name,
                               'wvSetSearchMode',
                               args)
-        assert(result is not '0'), 'Could not set search mode.'
+        assert(result != '0'), 'Could not set search mode.'
 
     def wvSearchBySignal(self, direction, signal, time):
         assert(direction in {'Next', 'Prev'}), 'Illegal direction.'
@@ -123,7 +123,7 @@ class Interface():
 
         # [0] Success = 1
         # [1] Time
-        if result is '0':
+        if result == '0':
             new_time = None
         else:
             new_time = result.split(' ')[1]

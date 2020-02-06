@@ -97,7 +97,7 @@ class Controller():
     def view_callback_handler(self, reason):
         legal_reasons = {'Prev', 'Next', 'Center'}
         assert(reason in legal_reasons), 'Unrecognized reason.'
-        if reason is 'Center':
+        if reason == 'Center':
             self.recenter()
         else:
             self.verdi.search_signal_change(signal=config.ip_signal,
