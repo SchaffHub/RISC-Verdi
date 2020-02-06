@@ -130,13 +130,13 @@ class Interface():
 
         return new_time
 
-    def AddEventCallback(self, callback, reason, async=1):
+    def AddEventCallback(self, callback, reason, asynchronous=1):
         self.tk.send(self.wave_tk_name,
                      'AddEventCallback',
                      self.tk_name,
                      callback,
                      reason,
-                     async)
+                     asynchronous)
 
     def RemoveEventCallback(self, callback, reason):
         self.tk.send(self.wave_tk_name,
